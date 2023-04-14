@@ -2,16 +2,17 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#define DHTPIN D4
+#define DHTPIN D6
 #define SOILPIN A0
+#define RELAYPIN D1
 
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
 int threshold = 500;
 
-const char* ssid = "ssid";
-const char* password = "pass";
+const char* ssid = "SSID";
+const char* password = "Password ";
 const char* mqtt_server = "ip";
 const int mqtt_port = 1883;
 const char* mqtt_pub_topic = "intellify/pub";
@@ -53,7 +54,8 @@ void setup() {
   Serial.begin(9600);
 
   dht.begin();
-  pinMode(SOILPIN, OUTPUT);
+  pinMode(SOILPIN, INPUT);
+  pinMode(RELAYPIN, OUTPUT);
 
   Serial.println("Connecting ");
   WiFi.begin(ssid, password);
@@ -92,7 +94,11 @@ void loop() {
   }
 
   if (soil_moist >= threshold) {
-    Serial.println("Below threshold");
+    digitalWrite(RELAYPIN, HIGH); // turn on the relay
+    Serial.println("Soil moisture is above threshold, turning on relay.");
+  } else {
+    digitalWrite(RELAYPIN, LOW); // turn off the relay
+    Serial.println("Soil moisture is below threshold, turning off relay.");
   }
 
   Serial.print(F("Humidity: "));
@@ -104,5 +110,6 @@ void loop() {
   String msg = "{\"temp\":" + String(t) + ", \"hum\":" + String(h) + ", \"threshold\":" + threshold + " , \"soil\": " + soil_moist + "}";
   client.publish(mqtt_pub_topic, msg.c_str());
   Serial.println("sent");
+
   delay(2000);
 }
